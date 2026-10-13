@@ -327,7 +327,7 @@ ${sec('log', '調べ方の記録', `検索 ${searchOk}回`, `<p>検索は見つ�
 ${cutTable(r)}
 <details class="more"><summary>検索の一覧（${r.searches.length}回）</summary><div class="tbl"><table><thead><tr><th>切り口</th><th>検索語</th><th>条件</th><th>新しいチャンネル</th></tr></thead><tbody>${r.searches.map((s) => `<tr><td>${esc(CUTS.find((c) => c.id === s.cut)?.label ?? s.cut)}</td><td class="kw">${esc(s.q)}</td><td data-label="条件">${esc([s.order, s.region !== r.region ? s.region : null, s.publishedAfter ? `${s.publishedAfter}以降` : null, s.videoDuration].filter(Boolean).join('・'))}${s.ok ? '' : `（失敗: ${esc(s.error)}）`}</td><td class="n" data-label="新しいチャンネル">${num(s.newChannels)}</td></tr>`).join('')}</tbody></table></div></details>
 <details class="more"><summary>検索候補の束（${r.expand.clusters.length}件）</summary><div class="chips">${r.expand.clusters.map((c) => `<span class="chip i-${c.intents[0] ?? 'other'}">${esc(c.key)}<small>${c.hits}</small></span>`).join('')}</div></details>
-<h3>機械に回す続き</h3>
+<h3>日をおいて、もう一度調べると分かること</h3>
 <ul class="plain">${r.handoff.machine.map((m) => `<li>${esc(m.task)}: ${esc(m.how)}${m.channels?.length ? `（${m.channels.length}チャンネル）` : ''}</li>`).join('')}</ul>`)}
 
 <footer>

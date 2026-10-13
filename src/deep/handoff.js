@@ -126,11 +126,10 @@ export function handoff(deep, { theme }) {
     hint: '', links: [`https://trends.google.com/trends/explore?date=today%205-y&gprop=youtube&q=${encodeURIComponent(theme)}`],
   });
 
-  // 機械に回す続き
+  // 日をおいて、もう一度調べると分かること
   const watch = deep.anglers.filter((a) => a.copyable).slice(0, 10).map((a) => a.channel_id);
   const machine = [
-    { who: 'machine', task: '伸び方の推移を数週間見る', how: 'yt-research-radar の観測対象に入れる', channels: watch },
-    { who: 'machine', task: 'お金の根拠をもっと深く掘る', how: 'mekiki に回して根拠と反証を調べる', channels: [] },
+    { who: 'machine', task: '伸び方の推移を見る', how: '数週間おいて同じテーマをもう一度調べ切り、真似先の再生数と投稿の続き方を比べる', channels: watch },
   ];
 
   return { human: tasks.sort((a, b) => b.priority - a.priority), machine };

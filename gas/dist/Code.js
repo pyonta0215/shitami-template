@@ -1935,8 +1935,7 @@ ${topTerms.map((t) => `- ${t}`).join("\n")}
     });
     const watch2 = deep.anglers.filter((a) => a.copyable).slice(0, 10).map((a) => a.channel_id);
     const machine = [
-      { who: "machine", task: "\u4F38\u3073\u65B9\u306E\u63A8\u79FB\u3092\u6570\u9031\u9593\u898B\u308B", how: "yt-research-radar \u306E\u89B3\u6E2C\u5BFE\u8C61\u306B\u5165\u308C\u308B", channels: watch2 },
-      { who: "machine", task: "\u304A\u91D1\u306E\u6839\u62E0\u3092\u3082\u3063\u3068\u6DF1\u304F\u6398\u308B", how: "mekiki \u306B\u56DE\u3057\u3066\u6839\u62E0\u3068\u53CD\u8A3C\u3092\u8ABF\u3079\u308B", channels: [] }
+      { who: "machine", task: "\u4F38\u3073\u65B9\u306E\u63A8\u79FB\u3092\u898B\u308B", how: "\u6570\u9031\u9593\u304A\u3044\u3066\u540C\u3058\u30C6\u30FC\u30DE\u3092\u3082\u3046\u4E00\u5EA6\u8ABF\u3079\u5207\u308A\u3001\u771F\u4F3C\u5148\u306E\u518D\u751F\u6570\u3068\u6295\u7A3F\u306E\u7D9A\u304D\u65B9\u3092\u6BD4\u3079\u308B", channels: watch2 }
     ];
     return { human: tasks.sort((a, b) => b.priority - a.priority), machine };
   }
@@ -2532,7 +2531,7 @@ ${cutTable(r)}
       var _a2;
       return `<span class="chip i-${(_a2 = c.intents[0]) != null ? _a2 : "other"}">${esc(c.key)}<small>${c.hits}</small></span>`;
     }).join("")}</div></details>
-<h3>\u6A5F\u68B0\u306B\u56DE\u3059\u7D9A\u304D</h3>
+<h3>\u65E5\u3092\u304A\u3044\u3066\u3001\u3082\u3046\u4E00\u5EA6\u8ABF\u3079\u308B\u3068\u5206\u304B\u308B\u3053\u3068</h3>
 <ul class="plain">${r.handoff.machine.map((m) => {
       var _a2;
       return `<li>${esc(m.task)}: ${esc(m.how)}${((_a2 = m.channels) == null ? void 0 : _a2.length) ? `\uFF08${m.channels.length}\u30C1\u30E3\u30F3\u30CD\u30EB\uFF09` : ""}</li>`;
