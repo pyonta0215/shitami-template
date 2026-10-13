@@ -2643,7 +2643,7 @@ ${cutTable(r)}
     sh.setName(GUIDE_SHEET);
     sh.getRange(1, 1, GUIDE.length, 1).setValues(GUIDE);
     sh.getRange(1, 1).setFontSize(14).setFontWeight("bold");
-    sh.setColumnWidth(1, 900);
+    sh.setColumnWidth(1, 640);
     sh.getRange(1, 1, GUIDE.length, 1).setWrap(true);
     ss.setActiveSheet(sh);
     ss.moveActiveSheet(1);
