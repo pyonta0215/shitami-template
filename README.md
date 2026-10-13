@@ -21,11 +21,11 @@ YouTube Data API の無料枠では、検索が1日100回までです。調べ�
 
 - Google アカウント（YouTube の APIキーを作る）
 - Cloudflare アカウント（無料。2段階認証を設定しておく）
-- Claude Code（作業の大半を任せます）
+- Claude Code や Codex などの AI エージェント（作業の大半を任せます）
 
 ## 立て方
 
-Claude Code にこのフォルダを開いて **「CLAUDE.md に沿ってセットアップして」** と頼めば、手順1〜4を案内しながら進めてくれます。あなたが手を動かすのは、ログインの許可、APIキーの発行と貼り付け、Access の設定です。
+AI エージェント（Claude Code、Codex など）でこのフォルダを開いて **「AGENTS.md に沿ってセットアップして」** と頼めば、手順1〜5を案内しながら進めてくれます。あなたが手を動かすのは、ログインの許可、APIキーの発行と貼り付け、Access の設定です。
 
 ### 1. このテンプレートを手元に置く
 
@@ -52,7 +52,7 @@ npx wrangler login
 npx wrangler secret put YOUTUBE_API_KEY
 ```
 
-APIキーの考え方はノウハウ図書館の「APIキーの正体とGoogle APIキー・OAuth IDの設定方法」も参考になります。分からないところは Claude Code に「YouTube Data API v3 のキーを発行したい」と聞けば進みます。
+APIキーの考え方はノウハウ図書館の「APIキーの正体とGoogle APIキー・OAuth IDの設定方法」も参考になります。分からないところは AI エージェントに「YouTube Data API v3 のキーを発行したい」と聞けば進みます。
 
 ### 4. 公開する
 
