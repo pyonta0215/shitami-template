@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shitami",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+
+  // 画面（public/）は静的に配り、/api と /r だけ Worker が受ける
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/r/*"]
+  },
+
+  // `wrangler deploy` の前に画面の JavaScript を組み立てる
+  "build": { "command": "npm run build" },
+
+  // 台帳と結果の置き場所。id を書かなければ、初回の deploy で自動で作られる
+  "kv_namespaces": [{ "binding": "STORE" }],
+
+  "vars": {
+    // 1日に使う YouTube 検索の上限（無料枠は100回。調べ切り1回で最大85回）
+    "SEARCH_DAILY_CAP": "95",
+    // 任意。Worker 側でも Access のトークンを確かめたいときに、チーム名と AUD を入れる（README の「もう一段かたくする」）
+    "ACCESS_TEAM": "",
+    "ACCESS_AUD": ""
+  },
+
+  "observability": { "enabled": true }
+}

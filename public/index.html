@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>shitami ・ 調べ切り</title>
+<style>
+:root{--bg:#fafaf7;--card:#fff;--ink:#1f2328;--sub:#59636e;--line:#d8dee4;--accent:#1f6f5c;--soft:#e3f1ec;--gray:#f1f3f5;--danger:#8b2d2d;--warn:#fdf3e1;--warn-ink:#7a4e10}
+@media (prefers-color-scheme: dark){:root{--bg:#15191c;--card:#1d2226;--ink:#e6eaed;--sub:#9aa5ae;--line:#33393f;--accent:#6cc3a6;--soft:#1f3530;--gray:#252b30;--danger:#e59a93;--warn:#33291a;--warn-ink:#e3b46a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 72px;overflow-wrap:anywhere}
+.brand{font-size:.8rem;color:var(--sub);letter-spacing:.05em}
+h1{font-size:1.4rem;margin:4px 0 6px}
+.lead{color:var(--sub);font-size:.92rem;margin:0 0 16px}
+.notice{background:var(--warn);color:var(--warn-ink);border-radius:10px;padding:10px 12px;font-size:.88rem;margin:0 0 10px}
+form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+label.t{font-size:.85rem;color:var(--sub)}
+input[type=text]{width:100%;font:inherit;font-size:1.1rem;padding:12px;border:1px solid var(--line);border-radius:10px;margin:4px 0 12px;background:var(--card);color:var(--ink)}
+input[type=text]:focus{outline:2px solid var(--accent);border-color:transparent}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 12px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:block;text-align:center;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.95rem;cursor:pointer;background:var(--card)}
+.seg input:checked+label{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.seg input:focus-visible+label{outline:2px solid var(--accent)}
+.go{width:100%;font:inherit;background:var(--accent);color:var(--card);border:0;border-radius:10px;padding:13px;font-size:1.05rem;font-weight:600;cursor:pointer}
+.go:disabled{opacity:.5;cursor:default}
+.small{font-size:.8rem;color:var(--sub);margin:8px 0 0}
+.err{color:var(--danger);font-size:.9rem;margin:8px 0 0}
+#progress{margin-top:18px}
+#steps{list-style:none;padding:0;margin:0 0 8px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+#steps li{font-size:.75rem;text-align:center;color:var(--sub);padding-top:8px;border-top:4px solid var(--gray)}
+#steps li.on{color:var(--accent);border-top-color:var(--accent);font-weight:600}
+#steps li.now{color:var(--ink);border-top-color:var(--accent);opacity:.7}
+#stageText{font-weight:600;margin:0}
+#numbers,#log{font-size:.85rem;color:var(--sub);margin:2px 0 0;font-variant-numeric:tabular-nums}
+.open{display:block;text-align:center;background:var(--accent);color:var(--card);text-decoration:none;border-radius:10px;padding:13px;font-weight:600;margin-top:12px}
+section.box{margin-top:28px}
+section.box h2{font-size:.95rem;color:var(--sub);margin:0 0 6px}
+section.box ul{list-style:none;padding:0;margin:0}
+section.box li{padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+section.box li small{color:var(--sub)}
+a{color:var(--accent)}
+.about li{border:0;padding:2px 0}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">shitami ・ 需要の下見</div>
+  <h1>テーマを1つ、1日かけて調べ切る</h1>
+  <p class="lead">YouTube で始めたいテーマを入れると、① 投稿者は少ないのに見られている「穴場」と、② 後から入って伸びた「真似先」を探します。1日1回・5〜10分ほどかかります。</p>
+  <div id="notices"></div>
+
+  <form id="form">
+    <label class="t" for="theme">テーマ（例：AI BGM、作業用BGM、lofi）</label>
+    <input type="text" id="theme" maxlength="40" required autocomplete="off">
+    <span class="t" style="font-size:.85rem;color:var(--sub)">調べる地域</span>
+    <div class="seg" id="regions"></div>
+    <button class="go" id="go" type="submit">調べ切る</button>
+    <p class="small" id="quota"></p>
+    <p class="small" id="llmNote"></p>
+    <p class="err" id="error" role="alert"></p>
+    <p class="small" id="used" hidden>今日の調べ切りは使いました。日本時間の16〜17時に戻ります。<br><a id="todayLink" href="#"></a></p>
+  </form>
+
+  <div id="progress" hidden>
+    <ol id="steps"></ol>
+    <p id="stageText"></p>
+    <p id="numbers"></p>
+    <p id="log"></p>
+    <p class="small">調べている間はこのページを開いたままにしてください。閉じても、段ごとに保存しているので続きから再開できます。</p>
+    <div id="done" hidden><a class="open" id="open" href="#">結果を開く</a></div>
+  </div>
+
+  <section class="box" id="history" hidden>
+    <h2>これまでの結果（30日で消えます）</h2>
+    <ul id="historyList"></ul>
+  </section>
+
+  <section class="box about">
+    <h2>この道具について</h2>
+    <ul>
+      <li>結果は判断の材料です。「やるべき／やめるべき」は書きません。</li>
+      <li>YouTube の無料枠では検索が1日100回までで、1回の調べ切りで最大85回使います。枠は日本時間の16〜17時に戻ります。</li>
+      <li>非公式の道具です。YouTube Data API の利用規約に沿って使ってください。</li>
+    </ul>
+  </section>
+</main>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
