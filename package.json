@@ -11,7 +11,8 @@
     "build": "esbuild web/app.js --bundle --format=esm --platform=browser --target=es2022 --outfile=public/app.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build:gas": "node gas/build.mjs"
   },
   "dependencies": {
     "@pyonta0215/research-kit": "github:pyonta0215/research-kit#v0.2.0",

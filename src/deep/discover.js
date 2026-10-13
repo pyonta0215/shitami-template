@@ -33,11 +33,14 @@ function compactVideo(v) {
   };
 }
 
-/** 知らない動画だけ videos.list で取る（50本で1 unit） */
-async function fillVideos(state, yt, ids) {
+/** 知らない動画だけ videos.list で取る（50本で1 unit）。区切りの時間が来たら途中でやめる（次回、残りから取る） */
+async function fillVideos(state, yt, ids, shouldStop = () => false) {
   const missing = [...new Set(ids)].filter((id) => !state.videos[id]);
-  if (!missing.length) return;
-  for (const v of await yt.videos(missing)) state.videos[v.videoId] = compactVideo(v);
+  for (let i = 0; i < missing.length; i += 50) {
+    if (shouldStop()) return false;
+    for (const v of await yt.videos(missing.slice(i, i + 50))) state.videos[v.videoId] = compactVideo(v);
+  }
+  return true;
 }
 
 function makeSearcher(state, ctx) {
@@ -48,6 +51,7 @@ function makeSearcher(state, ctx) {
 
   return async function search(cut, q, extra = {}) {
     if (meter.searchCalls >= SEARCH_HARD_CAP) throw new StopSearch('hard-cap');
+    if (ctx.shouldStop?.()) throw new StopSearch('yield');
     const r = cut.otherRegion ? other : home;
     const publishedAfter = cut.publishedWithinDays ? new Date(now - cut.publishedWithinDays * DAY).toISOString() : undefined;
     const rec = { cut: cut.id, q, region: cut.otherRegion ? (region === 'jp' ? 'en' : 'jp') : region, order: cut.params.order, publishedAfter: publishedAfter?.slice(0, 10) ?? null, videoDuration: extra.videoDuration ?? null };
@@ -171,7 +175,8 @@ export async function discover(state, ctx) {
     }
   } catch (e) {
     if (!(e instanceof StopSearch)) throw e;
-    state.searchStop = e.message;
+    if (e.message === 'yield') state.partial = true; // 時間切れ。次回、続きから
+    else state.searchStop = e.message;
   }
   return state;
 }
@@ -199,12 +204,19 @@ async function uploads(yt, channelId, prefix, limit) {
 export async function deepen(state, ctx) {
   const { yt, meter, now, log } = ctx;
   const capped = () => meter.units >= COMBINED_CAP;
+  // 実行時間に上限がある環境（Apps Script は1回6分）では、区切りの時間が来たら途中でやめる。
+  // 取ったものは state に残るので、次回は残りだけを取る
+  const stop = () => Boolean(ctx.shouldStop?.());
+  const pause = () => { state.partial = true; return state; };
 
   // 見つかったチャンネルすべての登録者・開設日
   const channelIds = [...new Set(Object.values(state.videos).map((v) => v.ch).filter(Boolean))];
   const missing = channelIds.filter((id) => !state.channels[id]);
-  for (const c of await yt.channels(missing)) {
-    state.channels[c.channelId] = { title: c.title, handle: c.handle, pub: c.publishedAt, subs: c.hiddenSubscriberCount ? null : c.subscribers, views: c.views, videoCount: c.videoCount, country: c.country };
+  for (let i = 0; i < missing.length; i += 50) {
+    if (stop()) return pause();
+    for (const c of await yt.channels(missing.slice(i, i + 50))) {
+      state.channels[c.channelId] = { title: c.title, handle: c.handle, pub: c.publishedAt, subs: c.hiddenSubscriberCount ? null : c.subscribers, views: c.views, videoCount: c.videoCount, country: c.country };
+    }
   }
   log(`チャンネル: ${Object.keys(state.channels).length}件`);
 
@@ -216,24 +228,24 @@ export async function deepen(state, ctx) {
   }
   const top = [...appear.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id).filter((id) => state.channels[id]).slice(0, DEEPEN.channels);
   await pool(top.filter((id) => !state.uploads[id]), 4, async (id) => {
-    if (capped()) return;
+    if (capped() || stop()) return;
     let long = await uploads(yt, id, 'UULF', 50);
     let short = long == null ? null : await uploads(yt, id, 'UUSH', 50);
     let src = 'UULF+UUSH';
     if (long == null) { long = (await uploads(yt, id, 'UU', 50)) ?? []; short = []; src = 'UU'; }
     state.uploads[id] = { long, short: short ?? [], src };
   });
-  await fillVideos(state, yt, Object.values(state.uploads).flatMap((u) => [...u.long, ...u.short]));
+  if (stop() || !(await fillVideos(state, yt, Object.values(state.uploads).flatMap((u) => [...u.long, ...u.short]), stop))) return pause();
   log(`投稿履歴: ${Object.keys(state.uploads).length}チャンネル・動画 ${Object.keys(state.videos).length}本・合算枠 ${meter.units} units`);
 
   // 真似の候補: 開設2年以内で、チャンネル内の中央値の3倍を超えた動画があるチャンネル
   const cands = copyCandidates(state, now).slice(0, DEEPEN.copyCandidates);
   state.copyCandidates = cands.map((c) => c.id);
   await pool(cands.filter((c) => !state.history[c.id]), 4, async (c) => {
-    if (capped()) return;
+    if (capped() || stop()) return;
     state.history[c.id] = (await uploads(yt, c.id, 'UU', DEEPEN.copyHistoryPages * 50)) ?? [];
   });
-  await fillVideos(state, yt, Object.values(state.history).flat());
+  if (stop() || !(await fillVideos(state, yt, Object.values(state.history).flat(), stop))) return pause();
   log(`真似の候補: ${cands.length}チャンネルの全履歴・合算枠 ${meter.units} units`);
   return state;
 }

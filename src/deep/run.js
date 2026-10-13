@@ -57,18 +57,21 @@ export function progressOf(state) {
   };
 }
 
-/** 次の段を1つ進める。終わったら state.result が入り、state.next は 'done' になる */
-export async function runDeepStage(state, { youtubeApiKey, openAiApiKey, withEvidence = true, log = () => {}, fetchImpl, now = Date.now() }) {
+/**
+ * 次の段を1つ進める。終わったら state.result が入り、state.next は 'done' になる。
+ * shouldStop() が true を返したら、その段の途中で区切って戻る（state.next は変わらない）
+ */
+export async function runDeepStage(state, { youtubeApiKey, openAiApiKey, withEvidence = true, log = () => {}, fetchImpl, now = Date.now(), shouldStop }) {
   const stage = state.next;
   const meter = meterFrom(state);
   const yt = createYouTubeClient({ apiKey: youtubeApiKey, meter, ...(fetchImpl ? { fetch: fetchImpl } : {}) });
-  const ctx = { yt, meter, region: state.region, now: state.measuredAt ? Date.parse(state.measuredAt) : now, log };
+  const ctx = { yt, meter, region: state.region, now: state.measuredAt ? Date.parse(state.measuredAt) : now, log, shouldStop };
 
   if (stage === 'expand') {
     state.expand = await expandDeep(state.theme, state.region, { log, ...(fetchImpl ? { fetchImpl } : {}) });
   } else if (stage === 'discover') {
-    state.measuredAt = new Date(now).toISOString();
-    ctx.now = now;
+    state.measuredAt ??= new Date(now).toISOString(); // 続きから再開しても、測った日時は最初のまま
+    ctx.now = Date.parse(state.measuredAt);
     await discover(state, ctx);
   } else if (stage === 'deepen') {
     await deepen(state, ctx);
@@ -91,6 +94,11 @@ export async function runDeepStage(state, { youtubeApiKey, openAiApiKey, withEvi
   }
 
   state.quota = { searchCalls: meter.searchCalls, units: meter.units, failed: meter.failed };
+  if (state.partial) {
+    // 区切りの時間で途中まで進んだ。同じ段を次回もう一度呼ぶ（済んだ分は飛ばす）
+    delete state.partial;
+    return state;
+  }
   state.next = STAGES[STAGES.indexOf(stage) + 1] ?? 'done';
   return state;
 }

@@ -2,7 +2,12 @@
 
 このファイルは、このリポジトリで作業する AI エージェント（Claude Code、Codex、Cursor など）向けの指示です。
 
-このリポジトリを開いた人は、多くがエンジニアではありません。「AGENTS.md に沿ってセットアップして」と頼まれたら、README の「立て方」の手順1〜5を、1つずつ確認しながら進めてください。
+このリポジトリには、同じ計算を動かす2つの形があります。
+
+- スプレッドシート版（`gas/`）：配布のシートをコピーして使う。セットアップの手伝いは要らないことが多い
+- Cloudflare 版（`worker/`・`web/`・`public/`）：このファイルの「進め方」で立てる
+
+このリポジトリを開いた人は、多くがエンジニアではありません。「AGENTS.md に沿ってセットアップして」と頼まれたら、まずスプレッドシート版で足りないかを聞き、Cloudflare 版を選んだら README の「Cloudflare 版」の手順1〜5を、1つずつ確認しながら進めてください。
 
 ## 進め方
 
@@ -24,6 +29,8 @@
 
 ## 中身を変えるとき
 
-- 計算は `src/deep/`、中継は `worker/index.js`、画面は `public/index.html` と `web/app.js`
-- 変えたら `npm test` を通してから `npx wrangler deploy`
+- 計算は `src/deep/`、中継は `worker/index.js`、画面は `public/index.html` と `web/app.js`、スプレッドシート版は `gas/`
+- 変えたら `npm test` を通す。Cloudflare 版は `npx wrangler deploy`、スプレッドシート版は `npm run build:gas` で `gas/dist/` を作り直してコミットする
+- スプレッドシート版には fetch・URL・setTimeout が無い。`gas/shim.js` で補っているので、`src/` で新しい Web の機能を使うときは、そこで足りるか確かめる
+- `src/deep/` の段は、`shouldStop()` が true を返したら区切りよく止まり、次回そこから続けられるようにしておく（Apps Script は1回6分まで）
 - 外への呼び出しを足すときは、`web/app.js` の `toProxyUrl` と `worker/index.js` の両方に中継を足す。APIキーはブラウザに出さない

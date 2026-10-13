@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<base target="_top">
+<style>
+:root{--ink:#1f2328;--sub:#59636e;--line:#d8dee4;--accent:#1f6f5c;--soft:#e3f1ec;--gray:#f1f3f5;--danger:#8b2d2d;--warn:#fdf3e1}
+body{font:14px/1.7 "Hiragino Sans","Noto Sans JP",sans-serif;color:var(--ink);margin:12px}
+p{margin:0 0 8px}
+.lead{color:var(--sub);font-size:13px}
+label.t{display:block;font-size:12px;color:var(--sub);margin-top:10px}
+input[type=text]{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px;border:1px solid var(--line);border-radius:8px;margin-top:2px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.seg input{position:absolute;opacity:0}
+.seg label{display:block;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 4px;cursor:pointer;font-size:13px}
+.seg label small{display:block;font-size:11px;color:var(--sub)}
+.seg input:checked+label{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+button{width:100%;font:inherit;font-weight:700;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px;margin-top:12px;cursor:pointer}
+button.sub{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.err{color:var(--danger);font-size:13px;margin-top:8px}
+.box{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+ol.steps{list-style:none;padding:0;margin:0 0 6px;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+ol.steps li{font-size:11px;text-align:center;color:var(--sub);padding-top:6px;border-top:4px solid var(--gray)}
+ol.steps li.on{color:var(--accent);border-top-color:var(--accent);font-weight:700}
+ol.steps li.now{color:var(--ink);border-top-color:#9fd1bf}
+.small{font-size:12px;color:var(--sub)}
+.note{background:var(--warn);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<p class="lead">YouTube で始めたいテーマを1つ入れると、① 投稿者は少ないのに見られている「穴場」と、② 後から入って伸びた「真似先」を探します。1日1回・15〜30分ほどかかります。</p>
+
+<form id="form">
+  <label class="t" for="theme">テーマ（例：AI BGM、作業用BGM、lofi）</label>
+  <input type="text" id="theme" maxlength="40" required autocomplete="off">
+  <span class="t" style="display:block;font-size:12px;color:var(--sub);margin-top:10px">誰に見てもらう動画？</span>
+  <div class="seg">
+    <input type="radio" name="region" id="r-jp" value="jp" checked><label for="r-jp">日本の人<small>ふつうはこちら</small></label>
+    <input type="radio" name="region" id="r-en" value="en"><label for="r-en">海外の人<small>BGMなど言葉の要らない動画向け</small></label>
+  </div>
+  <button type="submit" id="go">調べ切る</button>
+  <p class="small" id="llm"></p>
+  <p class="err" id="error"></p>
+</form>
+
+<div class="box" id="progress" hidden>
+  <ol class="steps" id="steps"></ol>
+  <p id="stage"></p>
+  <p class="small" id="numbers"></p>
+  <p class="small">このサイドバーやシートを閉じても、調べ切りは裏で続きます。あとでメニューの「shitami → 調べ切る」を開くと、進み具合が見られます。</p>
+  <button type="button" class="sub" id="resume" hidden>続きから調べる</button>
+  <button type="button" id="open" hidden>結果を開く</button>
+</div>
+
+<div class="box small">
+  <p>結果は判断の材料です。「やるべき／やめるべき」は書きません。</p>
+  <p>YouTube の無料枠では検索が1日100回までで、1回の調べ切りで最大85回使います。枠は日本時間の16時（11月〜3月は17時）に戻ります。</p>
+</div>
+
+<script>
+const STAGES = ['expand', 'discover', 'deepen', 'evidence', 'analyze'];
+const LABEL = { expand: '広げる', discover: '見つける', deepen: '掘る', evidence: 'お金', analyze: 'まとめる' };
+const $ = (id) => document.getElementById(id);
+let timer = null;
+let current = null;
+
+function call(fn, ...args) {
+  return new Promise((resolve, reject) => google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args));
+}
+
+function render(s) {
+  $('llm').textContent = s.llm ? 'お金の根拠と反証も Web で調べます（OpenAI・1回 約7円）' : 'OpenAI のキーは未設定です（任意。メニューから設定できます）';
+  const run = s.run;
+  current = run;
+  if (!run) { $('progress').hidden = true; $('go').disabled = false; return; }
+  $('progress').hidden = false;
+  $('theme').value = run.theme;
+  $(`r-${run.region}`).checked = true;
+  const stage = run.stage === 'error' ? (run.lastStage || 'expand') : run.stage;
+  const idx = stage === 'done' ? STAGES.length : STAGES.indexOf(stage);
+  $('steps').innerHTML = STAGES.map((x, i) => `<li class="${i < idx ? 'on' : i === idx ? 'now' : ''}">${LABEL[x]}</li>`).join('');
+  const p = run.progress || {};
+  $('numbers').textContent = `検索 ${p.searchCalls || 0}回 ・ チャンネル ${p.channels || 0}件 ・ 動画 ${p.videos || 0}本`;
+  $('open').hidden = run.stage !== 'done';
+  $('resume').hidden = !(run.stage === 'error' || run.stale);
+  $('go').disabled = true;
+  if (run.stage === 'done') {
+    $('stage').textContent = 'できました';
+    $('error').textContent = run.day === s.today ? '今日の調べ切りは使いました。日本時間の16時（11月〜3月は17時）に戻ります。' : '';
+    $('go').disabled = run.day === s.today;
+  } else if (run.stage === 'error') {
+    $('stage').textContent = '止まりました';
+    $('error').textContent = run.error || '';
+  } else {
+    $('stage').textContent = run.stale ? '自動の続きが止まっているようです。「続きから調べる」を押してください' : (run.stageText || '');
+    $('error').textContent = '';
+  }
+  clearTimeout(timer);
+  if (run.stage !== 'done' && run.stage !== 'error') timer = setTimeout(refresh, 5000);
+}
+
+async function refresh() {
+  try { render(await call('getStatus')); } catch (e) { $('error').textContent = e.message; }
+}
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('error').textContent = '';
+  $('go').disabled = true;
+  try {
+    await call('startRun', $('theme').value, document.querySelector('input[name=region]:checked').value);
+    refresh();
+  } catch (err) {
+    $('error').textContent = err.message;
+    $('go').disabled = false;
+  }
+});
+$('resume').addEventListener('click', async () => {
+  try { await call('resumeRun'); refresh(); } catch (err) { $('error').textContent = err.message; }
+});
+$('open').addEventListener('click', () => current && call('openResult', current.id));
+refresh();
+</script>
+</body>
+</html>
