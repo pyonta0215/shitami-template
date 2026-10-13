@@ -3,3 +3,4 @@ node_modules/
 .dev.vars
 public/app.js
 .DS_Store
+gas/dist/.clasp.json

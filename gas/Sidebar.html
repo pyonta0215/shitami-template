@@ -85,7 +85,8 @@ function render(s) {
   $('resume').hidden = !(run.stage === 'error' || run.stale);
   $('go').disabled = true;
   if (run.stage === 'done') {
-    $('stage').textContent = 'できました';
+    const mins = run.finishedAt && run.startedAt ? Math.round((Date.parse(run.finishedAt) - Date.parse(run.startedAt)) / 60000) : null;
+    $('stage').textContent = mins == null ? 'できました' : `できました（${mins}分かかりました）`;
     $('error').textContent = run.day === s.today ? '今日の調べ切りは使いました。日本時間の16時（11月〜3月は17時）に戻ります。' : '';
     $('go').disabled = run.day === s.today;
   } else if (run.stage === 'error') {
@@ -96,7 +97,7 @@ function render(s) {
     $('error').textContent = '';
   }
   clearTimeout(timer);
-  if (run.stage !== 'done' && run.stage !== 'error') timer = setTimeout(refresh, 5000);
+  if (run.stage !== 'done' && run.stage !== 'error') timer = setTimeout(refresh, 15000);
 }
 
 async function refresh() {
