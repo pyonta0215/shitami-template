@@ -5,7 +5,6 @@
 
 import { newDeepState, runDeepStage, progressOf, STAGES, STAGE_TEXT } from '../src/deep/run.js';
 import { renderDeepReport } from '../src/deep/report.js';
-import { REGIONS } from '../src/demand.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -61,6 +60,12 @@ const saveState = (state) => idb('readwrite', (s) => s.put(state, state.id));
 const dropState = (id) => idb('readwrite', (s) => s.delete(id)).catch(() => {});
 
 // ---- 画面 ----
+
+// 地域ではなく「誰に見てもらうか」で聞く。検索候補と検索結果の並びがその視聴者の目線になる
+const AUDIENCES = [
+  { region: 'jp', label: '日本の人', hint: 'ふつうはこちら' },
+  { region: 'en', label: '海外の人', hint: 'BGM など言葉の要らない動画向け' },
+];
 
 const STEP_LABEL = { expand: '広げる', discover: '見つける', deepen: '掘る', evidence: 'お金', analyze: 'まとめる' };
 
@@ -184,7 +189,7 @@ async function start(e) {
 
 if (typeof document !== 'undefined') {
   $('form').addEventListener('submit', start);
-  $('regions').innerHTML = Object.entries(REGIONS).map(([k, r], i) =>
-    `<input type="radio" name="region" id="r-${k}" value="${k}"${i === 0 ? ' checked' : ''}><label for="r-${k}">${esc(r.label)}</label>`).join('');
+  $('regions').innerHTML = AUDIENCES.map((a, i) =>
+    `<input type="radio" name="region" id="r-${a.region}" value="${a.region}"${i === 0 ? ' checked' : ''}><label for="r-${a.region}">${esc(a.label)}<small>${esc(a.hint)}</small></label>`).join('');
   refresh();
 }

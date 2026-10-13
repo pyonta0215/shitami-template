@@ -12,11 +12,11 @@ export function handoff(deep, { theme }) {
   const top = deep.outliers.list.filter((o) => !o.small && !o.extreme).slice(0, 5);
   add({
     who: 'human', direction: 'common',
-    task: 'チャンネル内の外れ値を5本見て、なぜ刺さったかを言葉にする',
+    task: '伸びている動画を5本見て、なぜ見られたかを言葉にする',
     why: '数字は「どれが」までで、「なぜ」は見ないと分からない',
     how: '視聴し、企画・冒頭30秒・サムネと題名の約束を1行ずつ書き留める',
     effort_text: '1時間', impact: 3, uncertainty: 3, effort: 2,
-    hint: top.length ? `候補: ${top.map((o) => `「${o.title}」（${o.multiplier}倍）`).join('、')}` : '外れ値が見つからなかったので、主検索の上位を見る',
+    hint: top.length ? `候補: ${top.map((o) => `「${o.title}」（${o.multiplier}倍）`).join('、')}` : '伸びている動画が見つからなかったので、検索の上位を見る',
     links: top.map((o) => watchUrl(o.video_id)),
   });
 
@@ -24,7 +24,7 @@ export function handoff(deep, { theme }) {
   if (copyable.length) {
     add({
       who: 'human', direction: 'copy',
-      task: '② 真似の手本の、最初の10本と最新10本を見比べる',
+      task: '② 真似先の、最初の10本と最新10本を見比べる',
       why: '「最初は何をしていて、何を変えたら当たったか」は数字に出ない',
       how: '見比べて、変えた点（企画・尺・題名の型・頻度）を書き留める',
       effort_text: '1時間', impact: 3, uncertainty: 3, effort: 2,
@@ -52,7 +52,7 @@ export function handoff(deep, { theme }) {
   } else {
     add({
       who: 'human', direction: 'copy',
-      task: '② 真似の手本が見つからなかった理由を確かめる',
+      task: '② 真似先が見つからなかった理由を確かめる',
       why: '開設2年以内で当たりが続いているチャンネルが無かった。新規参入が難しいのか、測り方の外にいるのかは見ないと分からない',
       how: '主検索の上位を見て、新しいチャンネルがいない理由（大手の独占・規約・流行の終わり）を探す',
       effort_text: '30分', impact: 3, uncertainty: 3, effort: 1,
@@ -64,18 +64,18 @@ export function handoff(deep, { theme }) {
   if (niches.length) {
     add({
       who: 'human', direction: 'niche',
-      task: '① ニッチの池の上位を見て、視聴者として満たされていないものを探す',
-      why: '釣り人が少ない理由が「魚が少ないから」か「誰も気づいていないから」かは、見ないと分からない',
-      how: '池の上位10本を見て、足りないもの（新しさ・尺・言語・切り口）を1行で書く',
+      task: '① 穴場の上位の動画を見て、視聴者として物足りない点を探す',
+      why: '投稿者が少ない理由が「見る人が少ないから」か「誰も気づいていないから」かは、見ないと分からない',
+      how: '上位10本を見て、足りないもの（新しさ・尺・言語・切り口）を1行で書く',
       effort_text: '30分', impact: 3, uncertainty: 3, effort: 1,
-      hint: niches.map((x) => `「${x.term}」: 釣り人${x.anglers90}・新着の再生中央値 ${n(x.catchMedian)}回${x.regionGap ? '・海外にはいて国内にはいない' : ''}`).join(' ／ '),
+      hint: niches.map((x) => `「${x.term}」: 投稿者${x.anglers90}人・新しく来た人の再生中央値 ${n(x.catchMedian)}回`).join(' ／ '),
       links: niches.map((x) => `https://www.youtube.com/results?search_query=${encodeURIComponent(x.term)}`),
     });
     add({
       who: 'human', direction: 'niche',
-      task: '① 自分がその池の動画を作れるか確かめる',
+      task: '① 自分がその穴場の動画を作れるか確かめる',
       why: '素材・知識・機材は本人にしか分からない',
-      how: '作れないなら、隣の池（同じ束の別の語）を見る',
+      how: '作れないなら、近い語の穴場を見る',
       effort_text: '15分', impact: 3, uncertainty: 2, effort: 1,
       hint: '', links: [],
     });
@@ -103,9 +103,9 @@ export function handoff(deep, { theme }) {
       who: 'human', direction: 'common',
       task: '販売されている商品を1つ買って、中身と値付けを確かめる',
       why: '買わないと中身は分からない',
-      how: '外れ値の説明欄で一番多い販売先から1つ選ぶ',
+      how: '伸びている動画の説明欄で一番多い販売先から1つ選ぶ',
       effort_text: '数百〜数千円', impact: 2, uncertainty: 2, effort: 2,
-      hint: sales?.outliers != null ? `外れ値のうち販売リンクがあるのは ${Math.round(sales.outliers * 100)}%` : '',
+      hint: sales?.outliers != null ? `伸びている動画のうち販売リンクがあるのは ${Math.round(sales.outliers * 100)}%` : '',
       links: [],
     });
   }

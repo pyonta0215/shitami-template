@@ -14,6 +14,30 @@ const FMT = { long: '通常動画', short: 'Shorts', live: 'ライブ', unknown:
 const DIRECTION = { map: '共通の地図', niche: '① ニッチ', copy: '② 真似' };
 
 const EXTRA_CSS = `
+.first{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0 8px}
+.first h2{margin:0 0 4px;font-size:1.1rem;border:0;padding:0}
+.first .lead{font-size:.86rem;color:var(--sub);margin:0 0 10px}
+.look{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}
+.look h3{font-size:.95rem;margin:0 0 6px;display:flex;gap:8px;align-items:baseline}
+.look h3 small{font-weight:400;color:var(--sub);font-size:.76rem}
+.look ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.look li{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.look li .no{flex:none;width:1.4em;height:1.4em;border-radius:50%;background:var(--soft);color:var(--accent);font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.look li .body{min-width:0;display:flex;flex-direction:column;gap:1px}
+.look li .body b{font-size:.95rem}
+.look li .body span{font-size:.8rem;color:var(--sub)}
+.look .mthumb{flex:none;width:96px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:var(--gray)}
+.look .mthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.todo{margin-top:14px;background:var(--soft);border-radius:10px;padding:10px 12px}
+.todo b{display:block}
+.todo p{margin:2px 0 0;font-size:.86rem}
+.todo .links a{margin-right:10px;font-size:.84rem}
+.killline{margin:10px 0 0;font-size:.86rem}
+.killline .hit{color:#8b2d2d;font-weight:700}
+details.sec{border-top:1px solid var(--line);padding:4px 0}
+details.sec>summary{cursor:pointer;font-weight:700;font-size:1rem;padding:10px 0;list-style-position:outside}
+details.sec>summary small{font-weight:400;color:var(--sub);font-size:.8rem;margin-left:8px}
+details.sec[open]>summary{color:var(--accent)}
 .q-copy{background:#f5ecdd;color:#7a4e10}.q-go{background:#dff3e8;color:#155c3b}.q-niche{background:#e4ebf4;color:#2d4f7c}.q-avoid{background:#f3e3e3;color:#8b2d2d}.q-tiny{background:var(--gray);color:var(--sub)}
 .qpill{display:inline-block;border-radius:4px;padding:0 6px;font-size:.78rem;white-space:nowrap}
 .mapfig{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
@@ -121,7 +145,9 @@ function mapTable(map, tri) {
   return `<div class="tbl"><table><thead><tr><th>検索語</th><th>置き場所</th><th>魚<br><small>直近1年の再生合計</small></th><th>再生中央値</th><th>釣り人<br><small>直近90日</small></th><th>古い動画の<br>居座り率</th><th>登録者1万人未満の<br>上位率</th><th>お金の<br>リンク</th><th>三角測量</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function nicheCard(n) {
+const gapText = (region) => (region === 'en' ? '日本にはいて海外にはいない' : '海外にはいて国内にはいない');
+
+function nicheCard(n, region) {
   return `<div class="card">
 <div class="dir">① ニッチカード</div>
 <h3><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(n.term)}" target="_blank" rel="noopener noreferrer">${esc(n.term)}</a></h3>
@@ -137,7 +163,7 @@ function nicheCard(n) {
 <dt>別の地域の釣り人</dt><dd>${n.otherRegion ? num(n.otherRegion.anglers90) : '—'}</dd>
 <dt>お金のリンク</dt><dd>${pct(n.money)}</dd>
 </dl>
-<div class="flags">${n.regionGap ? '<span class="flag on">海外にはいて国内にはいない</span>' : ''}${n.tiny ? '<span class="flag warn">池が小さすぎる</span>' : ''}${(n.staleRate ?? 0) >= 0.3 ? '<span class="flag on">供給が追いついていない</span>' : ''}</div>
+<div class="flags">${n.regionGap ? `<span class="flag on">${gapText(region)}</span>` : ''}${n.tiny ? '<span class="flag warn">池が小さすぎる</span>' : ''}${(n.staleRate ?? 0) >= 0.3 ? '<span class="flag on">供給が追いついていない</span>' : ''}</div>
 </div>`;
 }
 
@@ -169,7 +195,7 @@ ${best ? `<div class="mini">一番の当たり: <a href="${watch(best.video_id)}
 }
 
 function outlierTiles(o) {
-  const list = o.list.filter((x) => !x.small).slice(0, 12);
+  const list = o.wall ?? o.list.filter((x) => !x.small && !x.extreme).slice(0, 12);
   if (!list.length) return NONE;
   return `<div class="wall">${list.map((v) => `<a class="tile${v.extreme ? '' : ' is-hot'}" href="${watch(v.video_id)}" target="_blank" rel="noopener noreferrer">
 <span class="thumb"><img src="${thumb(v.video_id)}" alt="" loading="lazy" width="320" height="180"></span>
@@ -180,14 +206,14 @@ function outlierTiles(o) {
 </a>`).join('')}</div>`;
 }
 
-function signalTable(s) {
+function signalTable(s, region) {
   const rows = [
     ['似た名前のチャンネルの群れ（最大）', `${num(s.clones)}チャンネル`, '混み始めた兆候', 'その型は他人にも再現できた証拠'],
     ['釣り人の数（中央値・直近90日）', num(s.anglersMedian), '多ければ避ける理由', '魚がいる証拠で、手本も多い'],
     ['上位に古い動画が残っている割合（平均）', pct(s.staleRate), '高いほど好機（供給が追いついていない）', '高いほど手本が古い（今の型が無い）'],
     ['上位に大手（登録者100万人以上）がいる割合', pct(s.bigTopRate), '小さな池なら影響が小さい', '大手は手本から外す'],
     ['外れ値の上位3チャンネルへの集中', pct(s.concentration), '高ければ新しい人は釣れていない', '同左'],
-    ['海外にはいて国内にはいない池', `${num(s.regionGaps)}件`, '輸入できる池の候補', '海外の手本を真似できる'],
+    [`${gapText(region)}池`, `${num(s.regionGaps)}件`, '輸入できる池の候補', '別の地域の手本を真似できる'],
   ];
   return `<div class="tbl"><table><thead><tr><th>信号</th><th>このテーマの値</th><th>① ニッチ探しでは</th><th>② 真似探しでは</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="kw">${esc(r[0])}</td><td class="n" data-label="値">${esc(r[1])}</td><td data-label="① ニッチ">${esc(r[2])}</td><td data-label="② 真似">${esc(r[3])}</td></tr>`).join('')}</tbody></table></div>`;
 }
@@ -209,16 +235,45 @@ function cutTable(r) {
   return `<div class="tbl"><table><thead><tr><th>切り口</th><th>方向</th><th>計画</th><th>使った回数</th><th>飽和</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function firstLook(r, niches, picks) {
+  const d = r.deep;
+  const todo = r.handoff.human[0];
+  const kills = d.kill.filter((k) => k.hit);
+  const nicheItems = niches.slice(0, 3).map((n, i) => `<li><span class="no">${i + 1}</span><span class="body">
+<b><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(n.term)}" target="_blank" rel="noopener noreferrer">${esc(n.term)}</a></b>
+<span>新しく来た人の動画が中央値 ${compact(n.catchMedian)}回 ・ 投稿者 ${num(n.anglers90)}人（直近90日）</span>
+${n.regionGap ? `<span>${gapText(r.region)}</span>` : ''}</span></li>`).join('');
+  const copyItems = picks.slice(0, 3).map((a) => {
+    const best = a.best[0];
+    const first = a.first_hit ? `最初の当たりは${a.first_hit.nth}本目（${num(a.first_hit.days_from_start)}日目）` : '最初の当たりは不明';
+    return `<li>${best ? `<a class="mthumb" href="${watch(best.video_id)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(best.title)}"><img src="${thumb(best.video_id)}" alt="" loading="lazy" width="160" height="90"></a>` : ''}<span class="body">
+<b><a href="https://www.youtube.com/channel/${encodeURIComponent(a.channel_id)}" target="_blank" rel="noopener noreferrer">${esc(a.title)}</a></b>
+<span>開設${a.age_days == null ? '—' : `${num(a.age_days)}日`} ・ ${first} ・ 当たり${a.hits}本</span>
+<span>週${a.per_week}本 ・ 登録者 ${a.subscribers == null ? '非公開' : compact(a.subscribers)}${a.copyable ? '' : ' ・ 手本の条件を一部満たさない'}</span></span></li>`;
+  }).join('');
+  return `<section class="first">
+<h2>まず見る3つ</h2>
+<p class="lead">判断の材料です。「やる／やらない」は書いていません。</p>
+<div class="look">
+<div><h3>① 穴場<small>投稿者は少ないのに見られている</small></h3>${nicheItems ? `<ol>${nicheItems}</ol>` : NONE}</div>
+<div><h3>② 真似先<small>後から入って当たりが続いている</small></h3>${copyItems ? `<ol>${copyItems}</ol>` : NONE}</div>
+</div>
+${todo ? `<div class="todo"><b>次にやること：${esc(todo.task)}（${esc(todo.effort_text)}）</b><p>${esc(todo.how)}</p>${todo.links?.length ? `<div class="links">${todo.links.slice(0, 3).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">開く${todo.links.length > 1 ? i + 1 : ''}</a>`).join('')}</div>` : ''}</div>` : ''}
+<p class="killline">${kills.length ? `<span class="hit">撤退の目安に${kills.length}つ当たりました：</span>${esc(kills.map((k) => k.text).join(' ／ '))}` : '撤退の目安（後から入って当たった人がいない、など4つ）には当たっていません。'}</p>
+</section>`;
+}
+
 export function renderDeepReport(r) {
   const d = r.deep;
   const ev = r.evidence;
   const evOk = ev?.ok;
-  const qCount = (q) => d.map.rows.filter((x) => x.quadrant === q).length;
   const copyable = d.anglers.filter((a) => a.copyable);
+  // 手本の候補が3人に満たなければ、条件を満たさない釣り人で埋める（カードの印で区別できる）
+  const picks = [...copyable, ...d.anglers.filter((a) => !a.copyable && !a.flags.too_big)].slice(0, 3);
   const niches = d.niches.filter((n) => !n.tiny);
-  const killHits = d.kill.filter((k) => k.hit).length;
   const costText = r.cost?.llm?.usd != null ? `$${r.cost.llm.usd.toFixed(3)}（推定）` : '未計測';
   const searchOk = r.searches.filter((s) => s.ok).length;
+  const sec = (id, title, sub, inner) => `<details class="sec" id="${id}"><summary>${title}${sub ? `<small>${sub}</small>` : ''}</summary>${inner}</details>`;
 
   return `<!doctype html>
 <html lang="ja">
@@ -236,78 +291,54 @@ export function renderDeepReport(r) {
 <header>
 <div class="brand">shitami ・ 調べ切り</div>
 <h1>${esc(r.theme)}</h1>
-<div class="meta">対象: ${esc(r.regionLabel)} ／ 取得日: ${esc(r.date)} ／ YouTube 検索 ${searchOk}回・チャンネル ${num(r.counts.channels)}件・動画 ${num(r.counts.videos)}本を測定</div>
+<div class="meta">${esc(r.region === 'en' ? '海外の視聴者向け' : '日本の視聴者向け')} ／ 取得日: ${esc(r.date)} ／ YouTube 検索 ${searchOk}回・チャンネル ${num(r.counts.channels)}件・動画 ${num(r.counts.videos)}本を測定</div>
 </header>
 
-<section class="gist">
-<p class="gist-line">魚がいる所を2つの方向から見ました。主検索の${d.map.rows.length}語のうち、真似で入る漁場 ${qCount('copy')}語・すぐ入る ${qCount('go')}語・ニッチの池 ${qCount('niche')}語・避ける ${qCount('avoid')}語・池が小さすぎる ${qCount('tiny')}語です。</p>
-<nav class="stats">
-<a href="#niche"><b>${niches.length}</b><span>① ニッチの池<br>（小さすぎるものを除く）</span></a>
-<a href="#copy"><b>${copyable.length}</b><span>② 真似の手本の候補</span></a>
-<a href="#kill"><b>${killHits}/${d.kill.length}</b><span>撤退条件に当たった数</span></a>
-</nav>
-</section>
-<p class="gist-note">判断の材料です。「やる／やらない」は書いていません。置き場所の境目は、このテーマの中の中央値です（ほかのテーマとの比較ではありません）。</p>
+${firstLook(r, niches, picks)}
 
-<h2>1. 漁場マップ<small>魚（再生）× 釣り人（投稿者）</small></h2>
-<p>主検索（関連度順）の各語を、上位50本のうち直近1年の動画の再生合計（魚）と、直近90日に動画を出したチャンネルの数（釣り人）で置きました。魚も釣り人も多いのは、そこで稼げている人がいる証拠で、不合格の印ではありません。</p>
-${mapSvg(d.map)}
-<details class="more"><summary>語ごとの数字を見る（${d.map.rows.length}語）</summary>${mapTable(d.map, d.triangulation)}
-<p class="mini">三角測量: 検索される（検索候補に多く出る）・見られる（魚が多い側）・払われる（説明欄のお金のリンクが1割以上）。3つそろった語だけを「需要あり」としています。コメント（言われる）は今後足します。</p></details>
-
-<h2 id="niche">2. ① ニッチの池<small>釣り人は少ないのに魚が来ているか</small></h2>
-<p>新着順の検索で「新しく来た人の動画がどれだけ回っているか」を測り、釣り人の数で割った値の大きい順に並べました。</p>
-${niches.length ? `<div class="cards deep-cards">${niches.slice(0, 6).map(nicheCard).join('')}</div>` : NONE}
-${d.niches.length > 6 || d.niches.some((n) => n.tiny) ? `<details class="more"><summary>ほかの池（${d.niches.length - Math.min(6, niches.length)}件）</summary><div class="cards deep-cards">${d.niches.filter((n) => !niches.slice(0, 6).includes(n)).map(nicheCard).join('')}</div></details>` : ''}
-
-<h2 id="copy">3. ② 真似できる釣り人<small>新しく入って、当たりが続いている人</small></h2>
-<p>開設2年以内のチャンネルを最初の動画まで遡り、チャンネル内の中央値の3倍を超えた動画（当たり）を数えました。緑の枠は「開設2年以内・当たり3本以上・題名にテーマの語を含む動画が1割以上・登録者1,000人以上・大手でない」をすべて満たす手本の候補です。</p>
-${d.anglers.length ? `<div class="cards deep-cards">${d.anglers.slice(0, 8).map(anglerCard).join('')}</div>` : NONE}
-${d.typeSuccess.length ? `<details class="more"><summary>型の成功率（伸びなかった人も数える）</summary>
-<p class="mini">同じ束 × 同じ形式で動画を出しているチャンネルのうち、直近1年に登録者数より多く再生された動画を持つ割合です。伸びた人だけを見ないための目安です。</p>
-<div class="tbl"><table><thead><tr><th>束</th><th>形式</th><th>チャンネル</th><th>当たった</th><th>成功率</th></tr></thead><tbody>${d.typeSuccess.map((t) => `<tr><td class="kw">${esc(t.cluster)}</td><td data-label="形式">${esc(FMT[t.fmt] ?? t.fmt)}</td><td class="n" data-label="チャンネル">${t.channels}</td><td class="n" data-label="当たった">${t.won}</td><td class="n" data-label="成功率">${pct(t.rate)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
-
-<h2>4. 同じ信号を、方向によって逆に読む</h2>
-${signalTable(d.signals)}
-${d.clones.length ? `<details class="more"><summary>似た名前のチャンネルの群れ</summary><ul class="plain">${d.clones.map((c) => `<li>${c.count}チャンネル: ${esc(c.examples.join('、'))}</li>`).join('')}</ul></details>` : ''}
-
-<h2>5. チャンネル内の外れ値<small>普段の3倍以上回った動画</small></h2>
-<p>同じチャンネル・同じ形式の中央値と比べた倍率です。登録者1,000人未満のチャンネルは分母が小さく倍率が膨らむので外しています（${num(d.outliers.small)}本）。20倍超は外部要因が多く、再現しにくい印を付けました。</p>
-<p class="mini">外れ値 ${num(d.outliers.counted)}本・${num(d.outliers.channels)}チャンネル ／ 上位3チャンネルへの集中 ${pct(d.outliers.concentration)}</p>
+<h2>伸びている動画のサムネ<small>そのチャンネルの普段の3〜20倍回った動画</small></h2>
+<p class="mini">並べて眺めるための一覧です。検索に出てきた動画を先に並べています。伸びた理由をサムネだけのせいにしないでください。普段の20倍を超えた動画は、外部要因が多く真似しにくいので外しています。</p>
 ${outlierTiles(d.outliers)}
 
-<h2 id="money">6. お金が動いているか</h2>
-<p>外れ値の説明欄にあるリンクを種類ごとに数えました（説明欄の本文は保存していません）。</p>
-<div class="tbl"><table><thead><tr><th>種類</th><th>外れ値のうち</th><th>測った動画全体のうち</th></tr></thead><tbody>${d.money.kinds.map((k) => `<tr><td class="kw">${esc(k.label)}${k.money ? '' : ' <small>（作り手が払う側）</small>'}</td><td class="n" data-label="外れ値">${pct(k.outliers)}</td><td class="n" data-label="全体">${pct(k.all)}</td></tr>`).join('')}</tbody></table></div>
+<h2>詳しく見る</h2>
+${sec('niche', '① 穴場をすべて見る', `${niches.length}件`, `<p>新着順の検索で「新しく来た人の動画がどれだけ回っているか」を測り、投稿者の数で割った値の大きい順に並べました。</p>
+${d.niches.length ? `<div class="cards deep-cards">${d.niches.map((n) => nicheCard(n, r.region)).join('')}</div>` : NONE}`)}
+${sec('copy', '② 真似先をすべて見る', `手本の候補 ${copyable.length}人`, `<p>開設2年以内のチャンネルを最初の動画まで遡り、チャンネル内の中央値の3倍を超えた動画（当たり）を数えました。緑の枠は「開設2年以内・当たり3本以上・題名にテーマの語を含む動画が1割以上・登録者1,000人以上・大手でない」をすべて満たす手本の候補です。</p>
+${d.anglers.length ? `<div class="cards deep-cards">${d.anglers.slice(0, 12).map(anglerCard).join('')}</div>` : NONE}
+${d.typeSuccess.length ? `<h3>型の成功率（伸びなかった人も数える）</h3>
+<p class="mini">同じ束 × 同じ形式で動画を出しているチャンネルのうち、直近1年に登録者数より多く再生された動画を持つ割合です。伸びた人だけを見ないための目安です。</p>
+<div class="tbl"><table><thead><tr><th>束</th><th>形式</th><th>チャンネル</th><th>当たった</th><th>成功率</th></tr></thead><tbody>${d.typeSuccess.map((t) => `<tr><td class="kw">${esc(t.cluster)}</td><td data-label="形式">${esc(FMT[t.fmt] ?? t.fmt)}</td><td class="n" data-label="チャンネル">${t.channels}</td><td class="n" data-label="当たった">${t.won}</td><td class="n" data-label="成功率">${pct(t.rate)}</td></tr>`).join('')}</tbody></table></div>` : ''}`)}
+${sec('next', '自分で確かめることをすべて見る', `${r.handoff.human.length}件`, `<p class="mini">優先度 = 判断を変えうるか × 確信がないか ÷ 手間</p>${taskList(r.handoff.human)}`)}
+${sec('map', '漁場マップ', '再生 × 投稿者', `<p>主検索（関連度順）の各語を、上位50本のうち直近1年の動画の再生合計（魚）と、直近90日に動画を出したチャンネルの数（釣り人）で置きました。魚も釣り人も多いのは、そこで稼げている人がいる証拠で、不合格の印ではありません。置き場所の境目は、このテーマの中の中央値です。</p>
+${mapSvg(d.map)}
+<details class="more"><summary>語ごとの数字を見る（${d.map.rows.length}語）</summary>${mapTable(d.map, d.triangulation)}</details>
+<h3>同じ信号を、方向によって逆に読む</h3>
+${signalTable(d.signals, r.region)}
+${d.clones.length ? `<details class="more"><summary>似た名前のチャンネルの群れ</summary><ul class="plain">${d.clones.map((c) => `<li>${c.count}チャンネル: ${esc(c.examples.join('、'))}</li>`).join('')}</ul></details>` : ''}`)}
+${sec('money', 'お金が動いているか', evOk ? 'Web 調査あり' : '説明欄のリンクのみ', `<p>伸びた動画の説明欄にあるリンクを種類ごとに数えました（説明欄の本文は保存していません）。</p>
+<div class="tbl"><table><thead><tr><th>種類</th><th>伸びた動画のうち</th><th>測った動画全体のうち</th></tr></thead><tbody>${d.money.kinds.map((k) => `<tr><td class="kw">${esc(k.label)}${k.money ? '' : ' <small>（作り手が払う側）</small>'}</td><td class="n" data-label="伸びた動画">${pct(k.outliers)}</td><td class="n" data-label="全体">${pct(k.all)}</td></tr>`).join('')}</tbody></table></div>
 <h3>Web で見つかった根拠</h3>
 ${evOk ? evidenceList(ev.payments) : `<p class="none">${esc(ev?.reason ?? '調べていません')}</p>`}
 <h3 id="counter">反証（成り立たない・難しい根拠）</h3>
 ${evOk ? evidenceList(ev.counters) : NONE}
-${evOk && ev.unknowns?.length ? `<h3>まだ分からないこと</h3><ul class="plain">${ev.unknowns.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}
-
-<h2 id="kill">7. 撤退条件<small>調べる前に決めたもの</small></h2>
-<ul class="kill plain">${d.kill.map((k) => `<li><span class="${k.hit ? 'hit' : 'miss'}">${k.hit ? '当たった' : '当たらない'}</span>（${esc(k.value)}）: ${esc(k.text)}</li>`).join('')}</ul>
-
-<h2 id="next">8. 人が確かめること<small>優先度 = 判断を変えうるか × 確信がないか ÷ 手間</small></h2>
-${taskList(r.handoff.human)}
-<h3>機械に回す続き</h3>
-<ul class="plain">${r.handoff.machine.map((m) => `<li>${esc(m.task)}: ${esc(m.how)}${m.channels?.length ? `（${m.channels.length}チャンネル）` : ''}</li>`).join('')}</ul>
-
-<h2>9. 調べ方の記録</h2>
-<p>search 枠は発見だけに使い、切り口ごとに新しいチャンネルが出なくなったら打ち切って、残りを別の切り口へ回しました${r.searchStop ? `（${r.searchStop === 'quota-exceeded' ? '1日の枠を使い切って止まりました' : '上限に達して止まりました'}）` : ''}。</p>
+${evOk && ev.unknowns?.length ? `<h3>まだ分からないこと</h3><ul class="plain">${ev.unknowns.map((u) => `<li>${esc(u)}</li>`).join('')}</ul>` : ''}`)}
+${sec('kill', '撤退の目安', '調べる前に決めたもの', `<ul class="kill plain">${d.kill.map((k) => `<li><span class="${k.hit ? 'hit' : 'miss'}">${k.hit ? '当たった' : '当たらない'}</span>（${esc(k.value)}）: ${esc(k.text)}</li>`).join('')}</ul>`)}
+${sec('log', '調べ方の記録', `検索 ${searchOk}回`, `<p>検索は見つけるためだけに使い、切り口ごとに新しいチャンネルが出なくなったら打ち切って、残りを別の切り口へ回しました${r.searchStop ? `（${r.searchStop === 'quota-exceeded' ? '1日の枠を使い切って止まりました' : '上限に達して止まりました'}）` : ''}。</p>
 ${cutTable(r)}
 <details class="more"><summary>検索の一覧（${r.searches.length}回）</summary><div class="tbl"><table><thead><tr><th>切り口</th><th>検索語</th><th>条件</th><th>新しいチャンネル</th></tr></thead><tbody>${r.searches.map((s) => `<tr><td>${esc(CUTS.find((c) => c.id === s.cut)?.label ?? s.cut)}</td><td class="kw">${esc(s.q)}</td><td data-label="条件">${esc([s.order, s.region !== r.region ? s.region : null, s.publishedAfter ? `${s.publishedAfter}以降` : null, s.videoDuration].filter(Boolean).join('・'))}${s.ok ? '' : `（失敗: ${esc(s.error)}）`}</td><td class="n" data-label="新しいチャンネル">${num(s.newChannels)}</td></tr>`).join('')}</tbody></table></div></details>
 <details class="more"><summary>検索候補の束（${r.expand.clusters.length}件）</summary><div class="chips">${r.expand.clusters.map((c) => `<span class="chip i-${c.intents[0] ?? 'other'}">${esc(c.key)}<small>${c.hits}</small></span>`).join('')}</div></details>
+<h3>機械に回す続き</h3>
+<ul class="plain">${r.handoff.machine.map((m) => `<li>${esc(m.task)}: ${esc(m.how)}${m.channels?.length ? `（${m.channels.length}チャンネル）` : ''}</li>`).join('')}</ul>`)}
 
 <footer>
 <div>データの出どころと注意</div>
 <ul>
 <li>検索候補: YouTube の検索候補（${esc(r.regionLabel)}向け、${num(r.expand.requests)}回問い合わせ）。公式の API ではないため、件数は目安です</li>
-<li>漁場・外れ値・釣り人: YouTube Data API（${esc(r.date)} 時点）。search ${num(r.quota.searchCalls)}回・合算枠 ${num(r.quota.units)} units（うち ${num(r.quota.failed)}回は、その種類の動画が無いチャンネルの再生リストを問い合わせて空振りしたものなど）</li>
+<li>穴場・真似先・サムネ: YouTube Data API（${esc(r.date)} 時点）。search ${num(r.quota.searchCalls)}回・合算枠 ${num(r.quota.units)} units</li>
 <li>サムネ: YouTube の画像を直接表示しています（保存していません）。権利は各動画の作者にあります</li>
 <li>お金の根拠・反証: Web 検索（${esc(ev?.model ?? '—')}）。調査で実際に参照した URL が付いている項目だけを載せています</li>
 <li>このページの調査費用: ${esc(costText)}</li>
-<li>このページは YouTube API の利用規約に合わせ、公開から30日で消えます</li>
+<li>このページは YouTube API の利用規約に合わせ、30日で消えます</li>
 </ul>
 </footer>
 </main>

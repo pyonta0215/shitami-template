@@ -26,6 +26,7 @@ input[type=text]:focus{outline:2px solid var(--accent);border-color:transparent}
 .seg label{display:block;text-align:center;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.95rem;cursor:pointer;background:var(--card)}
 .seg input:checked+label{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .seg input:focus-visible+label{outline:2px solid var(--accent)}
+.seg label small{display:block;font-size:.72rem;color:var(--sub);font-weight:400;line-height:1.4}
 .go{width:100%;font:inherit;background:var(--accent);color:var(--card);border:0;border-radius:10px;padding:13px;font-size:1.05rem;font-weight:600;cursor:pointer}
 .go:disabled{opacity:.5;cursor:default}
 .small{font-size:.8rem;color:var(--sub);margin:8px 0 0}
@@ -57,7 +58,7 @@ a{color:var(--accent)}
   <form id="form">
     <label class="t" for="theme">テーマ（例：AI BGM、作業用BGM、lofi）</label>
     <input type="text" id="theme" maxlength="40" required autocomplete="off">
-    <span class="t" style="font-size:.85rem;color:var(--sub)">調べる地域</span>
+    <span class="t" style="font-size:.85rem;color:var(--sub)">誰に見てもらう動画？</span>
     <div class="seg" id="regions"></div>
     <button class="go" id="go" type="submit">調べ切る</button>
     <p class="small" id="quota"></p>

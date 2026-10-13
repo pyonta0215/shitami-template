@@ -236,11 +236,17 @@ export function outliers(state, now) {
   }
   out.sort((a, b) => b.multiplier - a.multiplier);
   const counted = out.filter((o) => !o.small);
+  // サムネで学ぶための一覧。20倍超（外部要因が多い）と小さなチャンネルを外し、
+  // 検索に直接出てきた動画（テーマに沿っている）を先に、チャンネルの履歴から見つけた動画を後に並べる
+  const found = new Set(state.searches.flatMap((s) => s.hits ?? []));
+  const learnable = counted.filter((o) => !o.extreme);
+  const wall = [...learnable.filter((o) => found.has(o.video_id)), ...learnable.filter((o) => !found.has(o.video_id))].slice(0, 12);
   const byCh = new Map();
   for (const o of counted) byCh.set(o.channel_id, (byCh.get(o.channel_id) ?? 0) + 1);
   const top3 = [...byCh.values()].sort((a, b) => b - a).slice(0, 3).reduce((s, n) => s + n, 0);
   return {
     list: out,
+    wall,
     total: out.length,
     counted: counted.length,
     small: out.length - counted.length,
