@@ -22,24 +22,35 @@ function fakeAppsScript() {
   const tick = (ms) => { clock += ms; };
 
   const sheets = new Map();
+  const order = [];
   const sheet = (name) => {
     const rows = [];
     const sh = {
       name, rows, hidden: false,
+      getName: () => sh.name,
+      setName: (n) => { sheets.delete(sh.name); sh.name = n; sheets.set(n, sh); return sh; },
+      setColumnWidth: () => sh,
       getLastRow: () => rows.length,
-      getRange: (r, c, nr = 1, nc = 1) => ({
-        getValues: () => rows.slice(r - 1, r - 1 + nr).map((row) => Array.from({ length: nc }, (_, j) => row[c - 1 + j] ?? '')),
-        setValues: (vals) => vals.forEach((v, i) => { rows[r - 1 + i] = rows[r - 1 + i] ?? []; v.forEach((x, j) => { rows[r - 1 + i][c - 1 + j] = x; }); }),
-      }),
+      getRange: (r, c, nr = 1, nc = 1) => {
+        const range = {
+          getValues: () => rows.slice(r - 1, r - 1 + nr).map((row) => Array.from({ length: nc }, (_, j) => row[c - 1 + j] ?? '')),
+          setValues: (vals) => { vals.forEach((v, i) => { rows[r - 1 + i] = rows[r - 1 + i] ?? []; v.forEach((x, j) => { rows[r - 1 + i][c - 1 + j] = x; }); }); return range; },
+          setFontSize: () => range, setFontWeight: () => range, setWrap: () => range,
+        };
+        return range;
+      },
       deleteRow: (r) => rows.splice(r - 1, 1),
       appendRow: (v) => rows.push([...v]),
       hideSheet: () => { sh.hidden = true; },
       setFrozenRows: () => {}, hideColumns: () => {},
     };
     sheets.set(name, sh);
+    order.push(sh);
     return sh;
   };
-  const ss = { getSheetByName: (n) => sheets.get(n) ?? null, insertSheet: (n) => sheet(n) };
+  sheet('シート1');
+  const ss = { getSheetByName: (n) => sheets.get(n) ?? null, insertSheet: (n) => sheet(n), getSheets: () => order.slice(), setActiveSheet: () => {}, moveActiveSheet: () => {} };
+  const menu = { addItem: () => menu, addSeparator: () => menu, addToUi: () => {} };
 
   const store = (m = new Map()) => ({ getProperty: (k) => m.get(k) ?? null, setProperty: (k, v) => m.set(k, String(v)), deleteProperty: (k) => m.delete(k) });
   const docProps = store();
@@ -59,7 +70,7 @@ function fakeAppsScript() {
   const g = {
     console: { log: () => {} },
     Date: FakeDate,
-    SpreadsheetApp: { getActive: () => ss, getUi: () => ({}) },
+    SpreadsheetApp: { getActive: () => ss, getUi: () => ({ createMenu: () => menu }) },
     PropertiesService: { getDocumentProperties: () => docProps, getUserProperties: () => userProps },
     LockService: { getDocumentLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
     ScriptApp: {
@@ -103,6 +114,12 @@ test('スプレッドシート版を、区切りながら最後まで動かせ�
   const { g } = env;
   const ctx = vm.createContext({ ...g });
   vm.runInContext(CODE, ctx);
+
+  // 開いたときに、空の「シート1」が「使い方」になる
+  ctx.onOpen();
+  assert.ok(env.sheets.get('使い方'));
+  assert.equal(env.sheets.get('シート1'), undefined);
+  assert.match(env.sheets.get('使い方').rows[11][0], /結果を開く/);
 
   const run = ctx.startRun('AI BGM', 'jp');
   assert.equal(run.stage, 'expand');

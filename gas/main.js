@@ -81,7 +81,49 @@ export function onOpen() {
     .addSeparator()
     .addItem('OpenAI のキーを設定（任意）', 'setOpenAiKey')
     .addToUi();
+  ensureGuide();
   cleanup();
+}
+
+const GUIDE_SHEET = '使い方';
+const GUIDE = [
+  ['shitami ・ 調べ切り（需要の下見）'],
+  [''],
+  ['YouTube で始めたいテーマを1つ入れると、① 投稿者は少ないのに見られている「穴場」と、② 後から入って伸びた「真似先」を探します。'],
+  ['「やるべき／やめるべき」は書きません。判断の材料です。'],
+  [''],
+  ['■ 調べる'],
+  ['1. メニューの「shitami」→「調べ切る」（初回だけ Google の承認画面が出ます）'],
+  ['2. 右に出る画面でテーマを入れ、「誰に見てもらう動画？」を選んで「調べ切る」'],
+  ['3. 15〜30分ほどで終わります。シートを閉じても裏で続きます'],
+  [''],
+  ['■ 結果を見る・見返す'],
+  ['・メニューの「shitami」→「結果を開く」で、過去の結果を一覧から開けます（パソコンのブラウザで）'],
+  ['・「結果」シートには、日付・テーマ・穴場の1位・真似先の1位が残ります（スマホのシートアプリでも見られます）'],
+  ['・結果は30日で自動的に消えます（YouTube API の規約に合わせています）'],
+  [''],
+  ['■ 1日1回だけです'],
+  ['YouTube の無料枠では検索が1日100回までで、1回の調べ切りで最大85回使います。枠は日本時間の16時（11月〜3月は17時）に戻ります。'],
+  [''],
+  ['■ 任意'],
+  ['「shitami」→「OpenAI のキーを設定」でキーを入れると、お金が動いている根拠と反証を Web で調べる欄が埋まります（1回 約7円）。'],
+  [''],
+  ['この道具は、作者がノウハウ図書館の記事やオフ会などで見聞きした内容を、自分なりに噛み砕いて形にしたものです。結果は収益や成果を約束するものではありません。非公式の道具です。'],
+];
+
+/** 最初の空のシートを「使い方」にする（無ければ作る）。すでにあれば何もしない */
+function ensureGuide() {
+  const ss = SpreadsheetApp.getActive();
+  if (ss.getSheetByName(GUIDE_SHEET)) return;
+  const blank = ss.getSheets().find((sh) => sh.getName() !== RESULT_SHEET && sh.getName() !== DATA_SHEET && sh.getLastRow() === 0);
+  const sh = blank ?? ss.insertSheet(GUIDE_SHEET, 0);
+  sh.setName(GUIDE_SHEET);
+  sh.getRange(1, 1, GUIDE.length, 1).setValues(GUIDE);
+  sh.getRange(1, 1).setFontSize(14).setFontWeight('bold');
+  sh.setColumnWidth(1, 900);
+  sh.getRange(1, 1, GUIDE.length, 1).setWrap(true);
+  ss.setActiveSheet(sh);
+  ss.moveActiveSheet(1);
 }
 
 export function showSidebar() {
