@@ -580,7 +580,7 @@ var Shitami = (() => {
     return INTENTS.filter((i) => i.words.some((w) => t.includes(w.toLowerCase()))).map((i) => i.id);
   }
 
-  // node_modules/@pyonta0215/research-kit/dist/responses/index.js
+  // node_modules/@pyonta0215/llm-kit/dist/responses/index.js
   var asRecord2 = (value) => typeof value === "object" && value !== null ? value : {};
   var asArray = (value) => Array.isArray(value) ? value : [];
   var asString2 = (value) => typeof value === "string" ? value : void 0;
@@ -750,7 +750,7 @@ var Shitami = (() => {
     return body;
   }
 
-  // node_modules/@pyonta0215/research-kit/dist/json/index.js
+  // node_modules/@pyonta0215/llm-kit/dist/json/index.js
   function extractJsonCandidate(text) {
     const trimmed = text.trim();
     const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -771,7 +771,7 @@ var Shitami = (() => {
     }
   }
 
-  // node_modules/@pyonta0215/research-kit/dist/cost/index.js
+  // node_modules/@pyonta0215/llm-kit/dist/cost/index.js
   var UNMEASURED = Object.freeze({ usd: null, basis: "unmeasured" });
   var UnknownPriceError = class extends Error {
     constructor(model) {
@@ -824,15 +824,39 @@ var Shitami = (() => {
       throw new Error(`${field} must be a finite non-negative number`);
   }
 
+  // node_modules/@pyonta0215/llm-kit/dist/catalog/index.js
+  var ANTHROPIC_PRICING = "https://platform.claude.com/docs/en/about-claude/pricing";
+  var OPENAI_PRICING = "https://developers.openai.com/api/docs/pricing";
+  var HAIKU_5_5_LONG_CONTEXT = { aboveInputTokens: 1e5, inputMultiplier: 5, outputMultiplier: 5 };
+  var OPENAI_LONG_CONTEXT = { aboveInputTokens: 272e3, inputMultiplier: 2, outputMultiplier: 1.5 };
+  var anthropic = (price) => ({ provider: "anthropic", checkedOn: "2026-11-03", source: ANTHROPIC_PRICING, ...price });
+  var openai = (price) => ({ provider: "openai", checkedOn: "2026-11-03", source: OPENAI_PRICING, longContext: OPENAI_LONG_CONTEXT, ...price });
+  var MODEL_CATALOG = Object.freeze({
+    "claude-opus-5-5": anthropic({ inputPerMillionUsd: 4, cacheWritePerMillionUsd: 5, cachedInputPerMillionUsd: 0.2, outputPerMillionUsd: 20 }),
+    "claude-sonnet-5-5": anthropic({ inputPerMillionUsd: 2, cacheWritePerMillionUsd: 2.5, cachedInputPerMillionUsd: 0.1, outputPerMillionUsd: 10 }),
+    "claude-haiku-5-5": anthropic({
+      inputPerMillionUsd: 0.1,
+      cacheWritePerMillionUsd: 0.125,
+      cachedInputPerMillionUsd: 0.01,
+      outputPerMillionUsd: 0.5,
+      longContext: HAIKU_5_5_LONG_CONTEXT
+    }),
+    // 過去の実行記録の費用を読むために残している
+    "claude-haiku-4-5-20251001": anthropic({ inputPerMillionUsd: 1, cacheWritePerMillionUsd: 1.25, cachedInputPerMillionUsd: 0.1, outputPerMillionUsd: 5 }),
+    "gpt-6-luna": openai({ inputPerMillionUsd: 0.1, cacheWritePerMillionUsd: 0.125, cachedInputPerMillionUsd: 0.01, outputPerMillionUsd: 0.5 }),
+    "gpt-6-sol": openai({ inputPerMillionUsd: 2, cacheWritePerMillionUsd: 2.5, cachedInputPerMillionUsd: 0.2, outputPerMillionUsd: 10 }),
+    "gpt-6.1-sol": openai({ inputPerMillionUsd: 2, cacheWritePerMillionUsd: 2.5, cachedInputPerMillionUsd: 0.1, outputPerMillionUsd: 10 }),
+    "gpt-5.6-luna": openai({ inputPerMillionUsd: 0.2, cacheWritePerMillionUsd: 0.25, cachedInputPerMillionUsd: 0.02, outputPerMillionUsd: 1.2 }),
+    "gpt-5.6-terra": openai({ inputPerMillionUsd: 2, cacheWritePerMillionUsd: 2.5, cachedInputPerMillionUsd: 0.2, outputPerMillionUsd: 12 })
+  });
+  var WEB_SEARCH_PER_CALL = Object.freeze({
+    anthropic: { perCallUsd: 0.01, checkedOn: "2026-11-03", source: ANTHROPIC_PRICING },
+    openai: { perCallUsd: 0.01, checkedOn: "2026-11-03", source: OPENAI_PRICING }
+  });
+
   // src/prices.js
-  var GPT_6_LONG_CONTEXT = { aboveInputTokens: 272e3, inputMultiplier: 2, outputMultiplier: 1.5 };
-  var MODEL_PRICES = {
-    "gpt-6-luna": { inputPerMillionUsd: 0.1, outputPerMillionUsd: 0.5, cachedInputPerMillionUsd: 0.01, cacheWritePerMillionUsd: 0.125, longContext: GPT_6_LONG_CONTEXT },
-    "gpt-6-sol": { inputPerMillionUsd: 2, outputPerMillionUsd: 10, cachedInputPerMillionUsd: 0.2, cacheWritePerMillionUsd: 2.5, longContext: GPT_6_LONG_CONTEXT },
-    "gpt-5.6-luna": { inputPerMillionUsd: 0.2, outputPerMillionUsd: 1.2, cachedInputPerMillionUsd: 0.02 },
-    "gpt-5.6-terra": { inputPerMillionUsd: 2, outputPerMillionUsd: 12, cachedInputPerMillionUsd: 0.2 }
-  };
-  var WEB_SEARCH_PRICING = { perCallUsd: 0.01, count: "all-calls" };
+  var MODEL_PRICES = MODEL_CATALOG;
+  var WEB_SEARCH_PRICING = { perCallUsd: WEB_SEARCH_PER_CALL.openai.perCallUsd, count: "all-calls" };
 
   // src/evidence.js
   var DEFAULT_MODEL = "gpt-6-luna";

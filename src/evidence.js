@@ -1,7 +1,7 @@
 // お金の側：このテーマで「実際にお金・時間が払われている根拠」と「成り立たない根拠」を集める。
 //
 // 考え方は mekiki の researchEvidence（Evidence / Counter Evidence を必ず両方調べる）から。
-// 送信・出典の取り出し・費用計算は research-kit に寄せた。
+// 送信・出典の取り出し・費用計算は llm-kit に寄せた。
 //
 // 推測を書かないための約束:
 //   - 出典として API が返した URL（引用・検索結果・開いたページ）に無い URL の項目は捨てる
@@ -9,9 +9,9 @@
 //   - 捨てた件数は結果に残す
 //   - 埋まらなかった欄は空のまま返し、画面で「記録なし」と書く
 
-import { OPENAI_RESPONSES_URL, parseResponse, postResponsesRequest } from '@pyonta0215/research-kit/responses';
-import { parseJsonFromText } from '@pyonta0215/research-kit/json';
-import { requirePrice, tokenCostUsd, webSearchCostUsd, roundUsd } from '@pyonta0215/research-kit/cost';
+import { OPENAI_RESPONSES_URL, parseResponse, postResponsesRequest } from '@pyonta0215/llm-kit/responses';
+import { parseJsonFromText } from '@pyonta0215/llm-kit/json';
+import { requirePrice, tokenCostUsd, webSearchCostUsd, roundUsd } from '@pyonta0215/llm-kit/cost';
 import { MODEL_PRICES, WEB_SEARCH_PRICING } from './prices.js';
 
 export const DEFAULT_MODEL = 'gpt-6-luna';
