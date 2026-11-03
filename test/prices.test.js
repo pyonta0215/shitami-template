@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertValidPrice, tokenCostUsd } from '@pyonta0215/research-kit/cost';
+import { assertValidPrice, tokenCostUsd } from '@pyonta0215/llm-kit/cost';
 import { MODEL_PRICES } from '../src/prices.js';
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} !== ${expected}`);
 
-test('単価表はすべて research-kit の検査を通る', () => {
+test('単価表はすべて llm-kit の検査を通る', () => {
   for (const [model, price] of Object.entries(MODEL_PRICES)) assertValidPrice(price, `price for ${model}`);
 });
 

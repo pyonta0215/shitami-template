@@ -15,7 +15,7 @@
     "build:gas": "node gas/build.mjs"
   },
   "dependencies": {
-    "@pyonta0215/research-kit": "github:pyonta0215/research-kit#v0.2.0",
+    "@pyonta0215/llm-kit": "github:pyonta0215/llm-kit#v0.3.0",
     "@pyonta0215/youtube-kit": "github:pyonta0215/youtube-kit#v0.1.1"
   },
   "devDependencies": {
